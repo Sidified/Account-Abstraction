@@ -10,106 +10,102 @@ This project is a **Minimal Smart Contract Wallet** built using the ERC-4337 Acc
 
 Instead of traditional wallets (EOAs) controlled by private keys, this wallet is a **programmable smart contract** that defines its own validation logic.
 
-The goal of this project is to deeply understand:
-- How Account Abstraction works under the hood
-- How UserOperations are validated and executed
-- How smart contract wallets replace EOAs
-
 ---
 
-## ❗ Problem with Traditional Wallets
+## 💡 Why This Matters
 
-Current Web3 wallets (EOAs):
-- Require managing private keys / seed phrases
-- Cannot customize transaction validation
-- Require users to hold ETH for gas
-
-This creates a terrible onboarding experience:
-> Download wallet → Save seed phrase → Buy ETH → Transfer → Then use app
-
----
-
-## 💡 What Account Abstraction Solves
-
-Account Abstraction (ERC-4337) enables:
-
-- ✅ Gasless transactions (via Paymasters)
-- ✅ Social recovery (no seed phrase dependency)
-- ✅ Session keys (better UX for games/apps)
-- ✅ Custom authentication (biometrics, multi-sig, etc.)
+Account Abstraction solves one of Web3’s biggest problems: **UX**.
 
 Instead of:
-> “Private key = control”
+→ Private key = control
 
 We move to:
-> “Code = control”
+→ Code = control
+
+This enables:
+- Gas abstraction
+- Social recovery
+- Session keys
+- Custom authentication
 
 ---
 
 ## 🏗️ Architecture (ERC-4337)
 
-The system works through:
-
-- **UserOperation (UserOp)** → Custom transaction object
-- **Bundler** → Packages multiple UserOps
-- **EntryPoint** → Central contract that validates + executes
-- **Smart Contract Wallet (this project)** → Defines validation logic
-
 Flow:
-1. User signs a UserOp
-2. Bundler submits it to EntryPoint
-3. EntryPoint calls `validateUserOp()`
-4. If valid → calls `execute()`
+1. User signs a **UserOperation**
+2. Bundler submits it
+3. EntryPoint validates (`validateUserOp`)
+4. Wallet executes (`execute`)
 
 ---
 
 ## 📦 Current Implementation
 
-### ✅ MinimalAccount.sol
+### 🔹 Smart Contract Wallet (`MinimalAccount.sol`)
 
-A minimal ERC-4337 compliant smart contract wallet with:
-
-#### 🔐 Signature Validation
-- Uses ECDSA to verify owner signature
-- Implements `_validateSignature()`
-
-#### 🛡️ EntryPoint Access Control
-- Only EntryPoint can call critical functions
-- Prevents malicious direct calls
-
-#### ⚡ Execution Engine
-- `execute()` enables arbitrary contract calls
-- Uses low-level `.call`
-
-#### 💸 Prefunding Gas
-- `_payPrefund()` sends ETH to EntryPoint if required
-
-#### 👤 Ownership Model
-- Based on OpenZeppelin `Ownable`
-- Single owner wallet (for now)
+- Signature validation (ECDSA)
+- EntryPoint-only access control
+- Execution engine via `.call`
+- Prefunding gas logic
+- Ownable-based access control
 
 ---
 
-## 🧠 Key Learnings So Far
 
-- Account Abstraction separates **validation from execution**
-- Transactions are no longer “transactions” → they are **UserOperations**
-- Wallet logic becomes fully programmable
-- Security heavily depends on `validateUserOp()`
+
+### 🧠 Deployment Infrastructure
+
+Built a **modular deployment architecture** using Foundry scripts:
+
+#### 1. HelperConfig.s.sol
+- Dynamically selects config based on `chainId`
+- Stores:
+  - EntryPoint address
+  - Deployment account
+- Removes need for hardcoding addresses
+
+#### 2. DeployMinimal.s.sol
+- Fetches config from HelperConfig
+- Deploys `MinimalAccount`
+- Automatically handles ownership transfer
+
+👉 This makes deployment **network-agnostic + scalable**
+
+---
+
+### 🧪 Testing the Execution Engine
+
+Implemented unit tests using Foundry:
+
+#### ✅ Positive Test
+- Owner successfully calls `execute()`
+- Wallet interacts with ERC20Mock (mint)
+- Confirms correct execution
+
+#### 🛑 Negative Test
+- Random user attempts execution
+- Transaction reverts as expected
+- Confirms access control is secure
+
+---
+
+## 🧠 Key Learnings
+
+- Deployment infra matters as much as contract logic
+- Avoid hardcoding → use config abstraction
+- Testing = proving security, not just functionality
+- `execute()` is the real power layer of AA wallets
 
 ---
 
 ## ⚠️ Work In Progress
 
-This project is actively being built in public.
-
-### 🔜 Upcoming Improvements
-
-- [ ] Nonce validation (replay protection)
-- [ ] Paymaster integration (gas abstraction)
-- [ ] Multi-signature support
-- [ ] Session keys implementation
-- [ ] zkSync native AA version
+- [ ] Nonce validation
+- [ ] Full UserOp flow testing
+- [ ] Paymaster integration
+- [ ] Session keys
+- [ ] zkSync native AA implementation
 
 ---
 
@@ -117,35 +113,15 @@ This project is actively being built in public.
 
 - Solidity ^0.8.24
 - Foundry
-- OpenZeppelin Contracts
-- eth-infinitism Account Abstraction repo
+- OpenZeppelin
+- eth-infinitism (ERC-4337)
 
 ---
 
-## 📅 Build in Public
-
-I’m documenting this journey daily on X (Twitter), sharing:
-- Learnings
-- Code insights
-- Mistakes and breakthroughs
-
----
-
-## 🤝 Contributions
-
-This is a learning-focused project, but feedback, suggestions, and discussions are always welcome.
-
----
 
 ## 📌 Disclaimer
 
-This is an experimental implementation for learning purposes.  
-Do NOT use in production.
+This is a learning project. Not production-ready.
 
 ---
 
-## 🧩 Inspiration
-
-Account Abstraction is one of the biggest UX unlocks for Web3.
-
-> If Web3 is going to onboard billions, wallets must become invisible.
