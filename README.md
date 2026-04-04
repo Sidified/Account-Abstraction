@@ -137,6 +137,8 @@ Handled differences between:
 
 ---
 
+
+
 ### 🧪 Full ERC-4337 Flow Testing
 
 Implemented full integration tests simulating:
@@ -166,6 +168,8 @@ Used Foundry debugger to trace EVM-level failures:
 nonce = vm.getNonce(account) - 1;
 ```
 
+
+
 ---
 
 ### ✅ Result
@@ -178,6 +182,111 @@ Successfully executed full ERC-4337 flow locally:
 
 ---
 
+---
+
+## ⚡ zkSync Native Account Abstraction
+
+Exploring Account Abstraction at the **protocol level** using zkSync.
+
+Unlike Ethereum (ERC-4337), zkSync has AA built directly into the network.
+
+---
+
+### 🌍 Architectural Shift
+
+Ethereum (ERC-4337):
+- Uses Bundlers, Alt-Mempool, EntryPoint contract
+- AA is implemented as an overlay system
+
+zkSync (Native AA):
+- No Bundlers
+- No Alt-Mempool
+- No EntryPoint contract
+- Handled directly by the protocol (Bootloader)
+
+---
+
+### 🧠 Unified Account Model
+
+- Every account is a **smart contract by default**
+- Even EOAs are represented as smart contracts internally
+- Enables full programmability at the base layer
+
+---
+
+### 🪪 Transaction Type 113
+
+- zkSync uses a special transaction type: `0x71` (113)
+- Signals that the transaction should follow AA flow
+- Bootloader intercepts and routes it
+
+---
+
+### 🏗️ ZkMinimalAccount (In Progress)
+
+Started building a native zkSync AA wallet:
+
+Implements `IAccount` interface with 5 core functions:
+
+- `validateTransaction` → signature + nonce validation  
+- `executeTransaction` → executes payload  
+- `payForTransaction` → handles gas payment  
+- `prepareForPaymaster` → supports sponsored gas  
+- `executeTransactionFromOutside` → fallback execution  
+
+---
+
+### 🔄 zkSync Transaction Lifecycle
+
+Every transaction follows a strict 2-phase flow:
+
+1. **Validation Phase**
+   - Signature verification  
+   - Nonce validation  
+   - Gas checks  
+
+2. **Execution Phase**
+   - Payload execution  
+   - State changes  
+
+---
+
+### 🏛️ System Contracts (Key Insight)
+
+zkSync replaces hardcoded protocol logic with **smart contracts**:
+
+Example:
+- `NonceHolder` → manages nonce validation
+- `ContractDeployer` → handles contract deployment
+
+👉 The protocol itself is programmable
+
+---
+
+### 🚀 Deployment Differences
+
+Ethereum:
+- Deploy via `to = address(0)`
+
+zkSync:
+- Must call `ContractDeployer` system contract
+- Requires special tooling
+
+```bash
+forge create --zksync --legacy
+```
+
+---
+
+### 🧠 Key Learnings (zkSync)
+
+- Account Abstraction is drastically simpler when built into the protocol
+- zkSync removes the need for external infrastructure (Bundlers, EntryPoint)
+- System contracts replace hardcoded EVM behavior
+- Transaction validation and execution are enforced at the protocol level
+
+---
+
 ## 🧠 Key Learnings
 
 - Deployment infra matters as much as contract logic
@@ -185,6 +294,7 @@ Successfully executed full ERC-4337 flow locally:
 - Testing = proving security, not just functionality
 - `execute()` is the real power layer of AA wallets
 - Debugging at the EVM level is essential for complex protocols like ERC-4337
+- Protocol-level abstraction (zkSync) is fundamentally cleaner than application-layer abstraction (ERC-4337)
 
 ---
 
