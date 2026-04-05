@@ -184,7 +184,7 @@ abstract contract ZkMinimalAccount is IAccount, Ownable {
         if (to == address(DEPLOYER_SYSTEM_CONTRACT)) {
             uint32 gas = Utils.safeCastToU32(gasleft());
             SystemContractsCaller.systemCallWithPropagatedRevert(gas, to, value, data);
-        }else {
+        } else {
             bool success;
             assembly {
                 success := call(gas(), to, value, add(data, 0x20), mload(data), 0, 0)
