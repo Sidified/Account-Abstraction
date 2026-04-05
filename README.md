@@ -214,76 +214,114 @@ zkSync (Native AA):
 
 ---
 
-### 🪪 Transaction Type 113
+---
 
-- zkSync uses a special transaction type: `0x71` (113)
-- Signals that the transaction should follow AA flow
-- Bootloader intercepts and routes it
+## 🧩 zkSync Native AA Implementation (Completed)
+
+Fully implemented a minimal zkSync Smart Contract Wallet (`ZkMinimalAccount.sol`) following the `IAccount` interface.
 
 ---
 
-### 🏗️ ZkMinimalAccount (In Progress)
+### 🚦 TxType 113 Lifecycle (Deep Dive)
 
-Started building a native zkSync AA wallet:
+A zkSync AA transaction follows a strict 2-phase lifecycle:
 
-Implements `IAccount` interface with 5 core functions:
+#### Phase 1: Validation (API Client)
+- Nonce checked via `NonceHolder`
+- `validateTransaction()` called
+- Nonce must be incremented manually
+- Wallet balance verified for gas
+- Bootloader ensures fee coverage
 
-- `validateTransaction` → signature + nonce validation  
-- `executeTransaction` → executes payload  
-- `payForTransaction` → handles gas payment  
-- `prepareForPaymaster` → supports sponsored gas  
-- `executeTransactionFromOutside` → fallback execution  
-
----
-
-### 🔄 zkSync Transaction Lifecycle
-
-Every transaction follows a strict 2-phase flow:
-
-1. **Validation Phase**
-   - Signature verification  
-   - Nonce validation  
-   - Gas checks  
-
-2. **Execution Phase**
-   - Payload execution  
-   - State changes  
+#### Phase 2: Execution (Sequencer)
+- `executeTransaction()` triggered
+- Payload executed on-chain
+- Optional Paymaster post-processing
 
 ---
 
-### 🏛️ System Contracts (Key Insight)
+### 🔒 Bootloader-Centric Security
 
-zkSync replaces hardcoded protocol logic with **smart contracts**:
-
-Example:
-- `NonceHolder` → manages nonce validation
-- `ContractDeployer` → handles contract deployment
-
-👉 The protocol itself is programmable
+- `validateTransaction`, `payForTransaction` restricted to Bootloader
+- Prevents unauthorized access to critical wallet logic
+- Ensures protocol-level trust boundaries
 
 ---
 
-### 🚀 Deployment Differences
+### 🧮 Nonce Management via System Contracts
 
-Ethereum:
-- Deploy via `to = address(0)`
-
-zkSync:
-- Must call `ContractDeployer` system contract
-- Requires special tooling
-
-```bash
-forge create --zksync --legacy
-```
+- Manual nonce handling required
+- Uses `NonceHolder` system contract
+- Integrated via `SystemContractsCaller`
 
 ---
 
-### 🧠 Key Learnings (zkSync)
+### 🔐 Validation Engine (zkSync)
 
-- Account Abstraction is drastically simpler when built into the protocol
-- zkSync removes the need for external infrastructure (Bundlers, EntryPoint)
-- System contracts replace hardcoded EVM behavior
-- Transaction validation and execution are enforced at the protocol level
+Implemented full validation logic:
+
+- Nonce increment via system call  
+- Balance check using `totalRequiredBalance()`  
+- Signature verification using ECDSA  
+- Returns required magic value for Bootloader  
+
+---
+
+### ⚙️ Execution Engine (zkSync)
+
+Implemented dynamic execution routing:
+
+#### Path A: System Contracts
+- Uses `SystemContractsCaller`
+- Required for contract deployment
+
+#### Path B: Standard Contracts
+- Uses low-level assembly `call`
+- Ensures compatibility with zkEVM execution model
+
+---
+
+### 💸 Gas Payment Handling
+
+Implemented `payForTransaction()`:
+
+- Uses helper:
+  ```
+  _transaction.payToTheBootloader()
+  ```
+- Transfers gas fee directly to Bootloader
+
+---
+
+### 🚪 External Execution Support
+
+Implemented `executeTransactionFromOutside()`:
+
+- Allows third-party execution of pre-signed transactions
+- Re-validates signature internally
+- Enables flexible UX patterns (relayers, meta-transactions)
+
+---
+
+### ♻️ Contract Refactoring (DRY)
+
+Improved modularity via internal helpers:
+
+- `_validateTransaction()` → shared validation logic  
+- `_executeTransaction()` → shared execution routing  
+
+---
+
+### 🧠 Key zkSync Learnings
+
+- Validation and execution are strictly separated
+- System contracts replace core protocol logic
+- Bootloader acts as the central orchestrator
+- Developers must manually handle nonce + gas logic
+- Native AA is significantly cleaner than ERC-4337
+
+---
+
 
 ---
 
@@ -295,7 +333,7 @@ forge create --zksync --legacy
 - `execute()` is the real power layer of AA wallets
 - Debugging at the EVM level is essential for complex protocols like ERC-4337
 - Protocol-level abstraction (zkSync) is fundamentally cleaner than application-layer abstraction (ERC-4337)
-
+- zkSync exposes protocol internals to developers, requiring system-level thinking
 ---
 
 ## ⚠️ Work In Progress
