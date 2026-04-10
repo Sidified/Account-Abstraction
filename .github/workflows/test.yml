@@ -16,52 +16,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
           submodules: recursive
 
-      # Install Rust (needed for zkSync)
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      # Install Foundry (CORRECT CI WAY)
       - name: Install Foundry
-        run: |
-          curl -L https://foundry.paradigm.xyz | bash
-          export PATH="$HOME/.foundry/bin:$PATH"
-          foundryup
-
-      # Install zkSync Forge (overrides forge)
-      - name: Install zkSync Forge
-        run: |
-          cargo install --git https://github.com/matter-labs/foundry-zksync --locked forge
+        uses: foundry-rs/foundry-toolchain@v1
 
       - name: Show Forge version
-        run: |
-          export PATH="$HOME/.foundry/bin:$PATH"
-          forge --version
+        run: forge --version
 
       - name: Run Forge fmt
-        run: |
-          export PATH="$HOME/.foundry/bin:$PATH"
-          forge fmt --check
+        run: forge fmt --check
 
       - name: Run Forge build
-        run: |
-          export PATH="$HOME/.foundry/bin:$PATH"
-          forge build
+        run: forge build
 
-      # Ethereum tests
       - name: Run Ethereum tests
-        run: |
-          export PATH="$HOME/.foundry/bin:$PATH"
-          forge test --match-path test/ethereum -vvv
+        run: forge test --match-path test/ethereum -vvv
 
-      # zkSync tests
       - name: Run zkSync tests
-        run: |
-          export PATH="$HOME/.foundry/bin:$PATH"
-          forge test --match-path test/zksync --zksync --system-mode=true -vvv
+        run: forge test --match-path test/zksync --zksync --system-mode=true -vvv
