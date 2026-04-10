@@ -23,18 +23,18 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      # Install Rust (required for zkSync forge)
+      # Install Rust (needed for zkSync forge)
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # Install Foundry (correct way)
+      # Install Foundry (binary install - stable)
       - name: Install Foundry
         run: |
-          curl -L https://foundry.paradigm.xyz | bash
-          ~/.foundry/bin/foundryup
-          echo "$HOME/.foundry/bin" >> $GITHUB_PATH
+          curl -L https://github.com/foundry-rs/foundry/releases/latest/download/foundry_nightly_linux_amd64.tar.gz -o foundry.tar.gz
+          tar -xzf foundry.tar.gz
+          sudo mv forge cast anvil chisel /usr/local/bin/
 
-      # Install zkSync Forge
+      # Install zkSync Forge (overrides forge binary)
       - name: Install zkSync Forge
         run: |
           cargo install --git https://github.com/matter-labs/foundry-zksync --locked forge
