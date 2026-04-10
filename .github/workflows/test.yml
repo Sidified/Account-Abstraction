@@ -27,15 +27,14 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # Install Foundry (base)
+      # Install Foundry (correct way)
       - name: Install Foundry
         run: |
           curl -L https://foundry.paradigm.xyz | bash
+          ~/.foundry/bin/foundryup
           echo "$HOME/.foundry/bin" >> $GITHUB_PATH
-          source $HOME/.foundry/bin
-          foundryup
 
-      # Install zkSync-compatible Forge
+      # Install zkSync Forge
       - name: Install zkSync Forge
         run: |
           cargo install --git https://github.com/matter-labs/foundry-zksync --locked forge
@@ -49,10 +48,10 @@ jobs:
       - name: Run Forge build
         run: forge build
 
-      # Ethereum tests (normal EVM)
+      # Ethereum tests
       - name: Run Ethereum tests
         run: forge test --match-path test/ethereum -vvv
 
-      # zkSync tests (zk environment)
+      # zkSync tests
       - name: Run zkSync tests
         run: forge test --match-path test/zksync --zksync --system-mode=true -vvv
