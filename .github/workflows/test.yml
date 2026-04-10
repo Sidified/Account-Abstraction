@@ -18,9 +18,7 @@ jobs:
           submodules: recursive
 
       - name: Install foundry-zksync
-        run: |
-          curl -L https://raw.githubusercontent.com/matter-labs/foundry-zksync/main/install-foundry-zksync | bash
-          echo "$HOME/.foundry/bin" >> $GITHUB_PATH
+        uses: matter-labs/foundry-zksync-action@main
 
       - name: Show Forge version
         run: forge --version
