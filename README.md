@@ -1,364 +1,245 @@
-# 🧠 Minimal Account Abstraction Wallet (ERC-4337)
+# 🧠 Account Abstraction Wallets (ERC-4337 + zkSync Native AA)
 
-> Building a Smart Contract Wallet from scratch to understand the future of Web3 UX.
+> Building Smart Contract Wallets from scratch — from Ethereum’s ERC-4337 to zkSync’s native Account Abstraction.
 
 ---
 
 ## 🚀 Overview
 
-This project is a **Minimal Smart Contract Wallet** built using the ERC-4337 Account Abstraction standard.
+This project explores **Account Abstraction (AA)** at both:
 
-Instead of traditional wallets (EOAs) controlled by private keys, this wallet is a **programmable smart contract** that defines its own validation logic.
+- **Application Layer (Ethereum - ERC-4337)**
+- **Protocol Layer (zkSync Native AA)**
+
+The goal is to deeply understand:
+- How smart contract wallets work
+- How transactions are validated and executed
+- How different AA architectures compare
 
 ---
 
-## 💡 Why This Matters
+## ❗ Why Account Abstraction Matters
 
-Account Abstraction solves one of Web3’s biggest problems: **UX**.
+Traditional wallets (EOAs):
+- Depend on private keys
+- Require ETH for gas
+- Have poor UX (seed phrases, onboarding friction)
 
-Instead of:
-→ Private key = control
+Account Abstraction changes this:
 
-We move to:
-→ Code = control
+> Control shifts from **private keys → programmable logic**
 
 This enables:
-- Gas abstraction
+- Gasless transactions
 - Social recovery
 - Session keys
 - Custom authentication
+- Better UX for mass adoption
 
 ---
 
-## 🏗️ Architecture (ERC-4337)
+# 🏗️ Part 1: Ethereum (ERC-4337)
 
-Flow:
-1. User signs a **UserOperation**
-2. Bundler submits it
-3. EntryPoint validates (`validateUserOp`)
-4. Wallet executes (`execute`)
+## Architecture
 
----
+ERC-4337 introduces AA as an overlay system:
 
-## 📦 Current Implementation
+- **UserOperation (UserOp)** → Custom transaction object  
+- **Bundler** → Submits UserOps  
+- **EntryPoint** → Validates + executes  
+- **Smart Wallet** → Defines validation logic  
 
-### 🔹 Smart Contract Wallet (`MinimalAccount.sol`)
-
-- Signature validation (ECDSA)
-- EntryPoint-only access control
-- Execution engine via `.call`
-- Prefunding gas logic
-- Ownable-based access control
+### Flow:
+1. User signs a UserOp  
+2. Bundler submits it  
+3. EntryPoint calls `validateUserOp()`  
+4. If valid → `execute()`  
 
 ---
 
+## 🧩 Minimal Smart Wallet (`MinimalAccount.sol`)
 
-
-### 🧠 Deployment Infrastructure
-
-Built a **modular deployment architecture** using Foundry scripts:
-
-#### 1. HelperConfig.s.sol
-- Dynamically selects config based on `chainId`
-- Stores:
-  - EntryPoint address
-  - Deployment account
-- Removes need for hardcoding addresses
-
-#### 2. DeployMinimal.s.sol
-- Fetches config from HelperConfig
-- Deploys `MinimalAccount`
-- Automatically handles ownership transfer
-
-👉 This makes deployment **network-agnostic + scalable**
+### Features:
+- ECDSA signature validation  
+- EntryPoint-only access control  
+- Arbitrary execution via `.call`  
+- Gas prefunding support  
+- Ownable access control  
 
 ---
 
-### 🧪 Testing the Execution Engine
+## ⚙️ UserOperation Pipeline
 
-Implemented unit tests using Foundry:
+Implemented full pipeline:
 
-#### ✅ Positive Test
-- Owner successfully calls `execute()`
-- Wallet interacts with ERC20Mock (mint)
-- Confirms correct execution
-
-#### 🛑 Negative Test
-- Random user attempts execution
-- Transaction reverts as expected
-- Confirms access control is secure
+- Construct UserOp  
+- Pack gas fields (bitwise ops)  
+- Generate hash via EntryPoint  
+- Sign using EIP-191  
+- Submit via `handleOps()`  
 
 ---
 
-### 🧩 UserOperation (UserOp) Construction
+## 🧪 Testing & Debugging
 
-Implemented full scripting logic to generate ERC-4337 UserOperations:
-
-- Built `SendPackedUserOp.s.sol`
-- Generates **unsigned UserOp**
-- Packs gas fields using bitwise operations
-- Dynamically fetches nonce
-
-#### ⚙️ Key Concepts:
-- Bitwise packing (`<<`, `|`) for gas efficiency
-- Struct-based transaction model (UserOp ≠ traditional tx)
-- Separation of signing logic from contract logic
+- Full integration testing with Foundry  
+- Debugged:
+  - Invalid sender issues  
+  - Nonce mismatches (AA25)  
+- Learned:
+  > UserOps ≠ Transactions (completely different mental model)
 
 ---
 
-### ✍️ Signing & Hashing UserOps
+# ⚡ Part 2: zkSync Native Account Abstraction
 
-Implemented cryptographic signing flow matching EntryPoint expectations:
+## 🧠 Key Difference
 
-- Uses `EntryPoint.getUserOpHash()`
-- Applies EIP-191 signing standard
-- Signs via `vm.sign` (Foundry)
-
-#### 🔐 Security Details:
-- Includes:
-  - EntryPoint address
-  - Chain ID  
-→ prevents replay attacks across chains
+| Ethereum (4337) | zkSync |
+|----------------|--------|
+| Overlay system | Native system |
+| EntryPoint     | Bootloader |
+| Bundlers       | Sequencer |
+| Complex flow   | Direct flow |
 
 ---
 
-### 🔀 Cross-Environment Compatibility
+## 🌍 Native AA Model
 
-Handled differences between:
-
-- Local (Anvil)
-- Testnet (Sepolia)
-
-#### Solution:
-- Conditional signing logic based on `chainId`
-- Uses:
-  - Hardcoded Anvil key (local)
-  - Config-based key (testnet)
+- Every account is a smart contract  
+- No EOAs at protocol level  
+- No EntryPoint or Bundlers  
+- AA handled directly by the protocol  
 
 ---
 
+## 🪪 Transaction Type
 
-
-### 🧪 Full ERC-4337 Flow Testing
-
-Implemented full integration tests simulating:
-
-→ Bundler → EntryPoint → Smart Wallet → Target Contract
-
-#### Flow Verified:
-1. Generate signed UserOp  
-2. Fund wallet for gas  
-3. Call `handleOps()`  
-4. EntryPoint validates + executes  
+- Uses **TxType 113 (0x71)**
+- Routed through Bootloader
 
 ---
 
-### 🐞 Debugging & Fixes
+## 🔄 Transaction Lifecycle
 
-Used Foundry debugger to trace EVM-level failures:
-
-#### ❌ Bug 1: Wrong `sender`
-- Used EOA instead of Smart Contract Wallet  
-- Fixed by passing wallet address into UserOp  
-
-#### ❌ Bug 2: Invalid Nonce (AA25)
-- Foundry nonce mismatch  
-- Fixed using:
-```solidity
-nonce = vm.getNonce(account) - 1;
-```
-
-
-
----
-
-### ✅ Result
-
-Successfully executed full ERC-4337 flow locally:
-
-- UserOp → validated  
-- EntryPoint → executed  
-- Wallet → interacted with external contract  
-
----
-
----
-
-## ⚡ zkSync Native Account Abstraction
-
-Exploring Account Abstraction at the **protocol level** using zkSync.
-
-Unlike Ethereum (ERC-4337), zkSync has AA built directly into the network.
-
----
-
-### 🌍 Architectural Shift
-
-Ethereum (ERC-4337):
-- Uses Bundlers, Alt-Mempool, EntryPoint contract
-- AA is implemented as an overlay system
-
-zkSync (Native AA):
-- No Bundlers
-- No Alt-Mempool
-- No EntryPoint contract
-- Handled directly by the protocol (Bootloader)
-
----
-
-### 🧠 Unified Account Model
-
-- Every account is a **smart contract by default**
-- Even EOAs are represented as smart contracts internally
-- Enables full programmability at the base layer
-
----
-
----
-
-## 🧩 zkSync Native AA Implementation (Completed)
-
-Fully implemented a minimal zkSync Smart Contract Wallet (`ZkMinimalAccount.sol`) following the `IAccount` interface.
-
----
-
-### 🚦 TxType 113 Lifecycle (Deep Dive)
-
-A zkSync AA transaction follows a strict 2-phase lifecycle:
-
-#### Phase 1: Validation (API Client)
+### Phase 1: Validation
 - Nonce checked via `NonceHolder`
 - `validateTransaction()` called
-- Nonce must be incremented manually
-- Wallet balance verified for gas
-- Bootloader ensures fee coverage
+- Signature verified
+- Balance checked
 
-#### Phase 2: Execution (Sequencer)
-- `executeTransaction()` triggered
-- Payload executed on-chain
-- Optional Paymaster post-processing
-
----
-
-### 🔒 Bootloader-Centric Security
-
-- `validateTransaction`, `payForTransaction` restricted to Bootloader
-- Prevents unauthorized access to critical wallet logic
-- Ensures protocol-level trust boundaries
+### Phase 2: Execution
+- `executeTransaction()` called
+- Payload executed
+- State updated
 
 ---
 
-### 🧮 Nonce Management via System Contracts
+## 🧩 ZkMinimalAccount Implementation
 
-- Manual nonce handling required
-- Uses `NonceHolder` system contract
-- Integrated via `SystemContractsCaller`
+Implemented full wallet:
 
----
+### 🔐 Validation
+- Manual nonce handling (system contract)
+- Signature verification (ECDSA)
+- Balance validation
+- Returns protocol magic value
 
-### 🔐 Validation Engine (zkSync)
+### ⚙️ Execution
+- Handles:
+  - System contract calls
+  - Standard contract calls (assembly)
+- Supports deployment via `ContractDeployer`
 
-Implemented full validation logic:
+### 💸 Gas Handling
+- `payForTransaction()` → pays Bootloader directly
 
-- Nonce increment via system call  
-- Balance check using `totalRequiredBalance()`  
-- Signature verification using ECDSA  
-- Returns required magic value for Bootloader  
-
----
-
-### ⚙️ Execution Engine (zkSync)
-
-Implemented dynamic execution routing:
-
-#### Path A: System Contracts
-- Uses `SystemContractsCaller`
-- Required for contract deployment
-
-#### Path B: Standard Contracts
-- Uses low-level assembly `call`
-- Ensures compatibility with zkEVM execution model
+### 🔁 External Execution
+- `executeTransactionFromOutside()`
+- Enables meta-transactions / relayers
 
 ---
 
-### 💸 Gas Payment Handling
+## 🏛️ System Contracts
 
-Implemented `payForTransaction()`:
+zkSync replaces protocol logic with contracts:
 
-- Uses helper:
+- `NonceHolder` → nonce management  
+- `ContractDeployer` → deployment  
+- Bootloader → execution engine  
+
+> The protocol itself becomes programmable
+
+---
+
+## 🧪 Key Debugging Learnings
+
+- Signature logic differs from Ethereum (no EIP-191)  
+- Nonce must be manually incremented  
+- Must use:
+  ```solidity
+  incrementMinNonceIfEquals
   ```
-  _transaction.payToTheBootloader()
-  ```
-- Transfers gas fee directly to Bootloader
+- Returning correct magic value is critical  
+- Debugging often requires EVM-level tracing  
 
 ---
 
-### 🚪 External Execution Support
+# 🧠 Key Takeaways
 
-Implemented `executeTransactionFromOutside()`:
+- Account Abstraction = Validation + Execution + Gas + Infra  
+- ERC-4337 simulates AA → zkSync implements it natively  
+- Protocol-level AA is significantly cleaner  
+- Debugging AA requires system-level thinking  
 
-- Allows third-party execution of pre-signed transactions
-- Re-validates signature internally
-- Enables flexible UX patterns (relayers, meta-transactions)
-
----
-
-### ♻️ Contract Refactoring (DRY)
-
-Improved modularity via internal helpers:
-
-- `_validateTransaction()` → shared validation logic  
-- `_executeTransaction()` → shared execution routing  
-
----
-
-### 🧠 Key zkSync Learnings
-
-- Validation and execution are strictly separated
-- System contracts replace core protocol logic
-- Bootloader acts as the central orchestrator
-- Developers must manually handle nonce + gas logic
-- Native AA is significantly cleaner than ERC-4337
-
----
 
 
 ---
 
-## 🧠 Key Learnings
+# 🛠️ Tech Stack
 
-- Deployment infra matters as much as contract logic
-- Avoid hardcoding → use config abstraction
-- Testing = proving security, not just functionality
-- `execute()` is the real power layer of AA wallets
-- Debugging at the EVM level is essential for complex protocols like ERC-4337
-- Protocol-level abstraction (zkSync) is fundamentally cleaner than application-layer abstraction (ERC-4337)
-- zkSync exposes protocol internals to developers, requiring system-level thinking
----
-
-## ⚠️ Work In Progress
-
-- [ ] Nonce validation
-- [ ] Full UserOp flow testing
-- [ ] Paymaster integration
-- [ ] Session keys
-- [ ] zkSync native AA implementation
+- Solidity ^0.8.24  
+- Foundry  
+- OpenZeppelin  
+- eth-infinitism (ERC-4337)  
+- zkSync Era Contracts  
 
 ---
 
-## 🛠️ Tech Stack
+# 📌 Disclaimer
 
-- Solidity ^0.8.24
-- Foundry
-- OpenZeppelin
-- eth-infinitism (ERC-4337)
+This project is for learning and experimentation.  
+Not production-ready.
+
 
 ---
 
+# 🔥 Final Thought
 
-## 📌 Disclaimer
+> If Web3 is going to onboard billions,  
+> wallets must become programmable.
 
-This is a learning project. Not production-ready.
+Account Abstraction is that shift.
 
----
+# 🤝 Connect & Collaborate
 
+I'm actively seeking opportunities to contribute to Web3 projects and collaborate with other developers. Whether you're:
+- 👨‍💼 A company looking for smart contract developers
+- 🎓 A learner wanting to discuss these concepts
+- 🛠️ A developer interested in collaboration
+- 🔍 A recruiter evaluating technical skills
+
+**Let's connect!**
+
+- 💼 **LinkedIn:** [Siddharth Choudhary](https://www.linkedin.com/in/siddharth-choudhary-797391215/)
+- 🐦 **X/Twitter:** [Sid_Hary_](https://x.com/Sid_Hary_)
+- 📧 **Email:** sidforwork46@gmail.com
+
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 🤝 Acknowledgements
+
+* **Cyfrin Updraft** for the foundational knowledge.

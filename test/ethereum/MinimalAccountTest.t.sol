@@ -19,6 +19,7 @@ contract MinimalAccountTest is Test {
     SendPackedUserOp sendPackedUserOp;
 
     uint256 constant AMOUNT = 1e18;
+    address constant ANVIL_DEFAULT_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     address randomUser = makeAddr("randomUser");
 

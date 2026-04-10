@@ -43,7 +43,7 @@ import {Ownable} from "@openzeppelin-contracts/contracts/access/Ownable.sol";
  * 9. If a paymaster was used, the postTransaction is called
  */
 
-abstract contract ZkMinimalAccount is IAccount, Ownable {
+contract ZkMinimalAccount is IAccount, Ownable {
     using MemoryTransactionHelper for Transaction;
 
     ////////////////////////////
@@ -54,6 +54,7 @@ abstract contract ZkMinimalAccount is IAccount, Ownable {
     error ZkMinimalAccount__NotFromBootLoaderOrOwner();
     error ZkMinimalAccount__ExecutionFailed();
     error ZkMinimalAccount__FailedToPayForTransaction();
+    error ZkMinimalAccount__InvalidSignature();
 
     ////////////////////////////
     //////// MODIFIERS /////////
@@ -115,7 +116,10 @@ abstract contract ZkMinimalAccount is IAccount, Ownable {
     // There is no point in providing possible signed hash in the `executeTransactionFromOutside` method,
     // since it typically should not be trusted.
     function executeTransactionFromOutside(Transaction memory _transaction) external payable {
-        _validateTransaction(_transaction);
+        bytes4 magic = _validateTransaction(_transaction);
+        if (magic != ACCOUNT_VALIDATION_SUCCESS_MAGIC) {
+            revert ZkMinimalAccount__InvalidSignature();
+        }
         _executeTransaction(_transaction);
     }
 
@@ -152,7 +156,7 @@ abstract contract ZkMinimalAccount is IAccount, Ownable {
             uint32(gasleft()),
             address(NONCE_HOLDER_SYSTEM_CONTRACT),
             0,
-            abi.encodeCall(INonceHolder.increaseMinNonce, (_transaction.nonce))
+            abi.encodeCall(INonceHolder.incrementMinNonceIfEquals, (_transaction.nonce))
         );
 
         // check for the fee to pay
@@ -163,10 +167,10 @@ abstract contract ZkMinimalAccount is IAccount, Ownable {
 
         // check the signature
         bytes32 txHash = _transaction.encodeHash();
-        bytes32 convertedHash = MessageHashUtils.toEthSignedMessageHash(txHash);
-        address signer = ECDSA.recover(convertedHash, _transaction.signature);
+        // bytes32 convertedHash = MessageHashUtils.toEthSignedMessageHash(txHash);
+        address signer = ECDSA.recover(txHash, _transaction.signature);
         bool isValidSigner = signer == owner();
-        if (!isValidSigner) {
+        if (isValidSigner) {
             magic = ACCOUNT_VALIDATION_SUCCESS_MAGIC;
         } else {
             magic = bytes4(0); // invalid signature, return 0

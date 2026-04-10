@@ -2,8 +2,14 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-
 remappings = ['@openzeppelin-contracts=lib/openzeppelin-contracts']
-is-system = true
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+# 1. Enable via-ir and optimizer to fix "Stack Too Deep"
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+
+# 2. Correct zkSync configuration section
+[profile.default.zksync]
+compile = true
+is_system = true  # Note: it's an underscore, not a hyphen
