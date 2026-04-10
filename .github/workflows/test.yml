@@ -7,18 +7,17 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    name: Foundry project
+  test-ethereum:
+    name: Ethereum Tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install foundry-zksync
-        uses: dutterbutter/foundry-zksync-toolchain@v1
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
 
       - name: Show Forge version
         run: forge --version
@@ -31,6 +30,18 @@ jobs:
 
       - name: Run Ethereum tests
         run: forge test --match-path "test/ethereum/**" -vvv
+
+  test-zksync:
+    name: zkSync Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install foundry-zksync
+        uses: dutterbutter/foundry-zksync-toolchain@v1
 
       - name: Run zkSync tests
         run: forge test --match-path "test/zksync/**" --zksync --system-mode=true -vvv
