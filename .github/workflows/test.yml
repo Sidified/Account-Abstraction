@@ -18,7 +18,7 @@ jobs:
           submodules: recursive
 
       - name: Install foundry-zksync
-        uses: matter-labs/foundry-zksync-action@main
+        uses: dutterbutter/foundry-zksync-toolchain@v1
 
       - name: Show Forge version
         run: forge --version
