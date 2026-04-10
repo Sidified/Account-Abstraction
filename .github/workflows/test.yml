@@ -1,29 +1,26 @@
 name: CI
 
-permissions: {}
-
 on:
   push:
+    branches: [main]
   pull_request:
-  workflow_dispatch:
-
-env:
-  FOUNDRY_PROFILE: ci
+    branches: [main]
 
 jobs:
-  check:
+  test:
     name: Foundry project
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          persist-credentials: false
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - name: Install foundry-zksync
+        run: |
+          curl -L https://raw.githubusercontent.com/matter-labs/foundry-zksync/main/install-foundry-zksync | bash
+          echo "$HOME/.foundry/bin" >> $GITHUB_PATH
 
       - name: Show Forge version
         run: forge --version
@@ -35,7 +32,7 @@ jobs:
         run: forge build
 
       - name: Run Ethereum tests
-        run: forge test --match-path test/ethereum -vvv
+        run: forge test --match-path "test/ethereum/**" -vvv
 
       - name: Run zkSync tests
-        run: forge test --match-path test/zksync --zksync --system-mode=true -vvv
+        run: forge test --match-path "test/zksync/**" --zksync --system-mode=true -vvv
